@@ -29,15 +29,17 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            filter: url(#water-filter) brightness(0.85); 
+            filter: url(#water-filter) brightness(0.85) blur(6px); 
             z-index: 1;
         }
 
         @keyframes sway {
-            0% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
-            33% { transform: scale(1.1) translate(1.5%, 1%) rotate(0.5deg); }
-            66% { transform: scale(1.08) translate(-1%, 1.5%) rotate(-0.5deg); }
-            100% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+            0% { transform: scale(1.0) translate(0, 0) rotate(0deg); }
+            20% { transform: scale(0.9) translate(1%, 0.5%) rotate(0.4deg); }
+            40% { transform: scale(1.15) translate(1.5%, 1%) rotate(0.7deg); }
+            60% { transform: scale(0.92) translate(-1%, 1.5%) rotate(-0.5deg); }
+            80% { transform: scale(1.12) translate(-0.5%, 0.5%) rotate(-0.3deg); }
+            100% { transform: scale(1.0) translate(0, 0) rotate(0deg); }
         }
 
         /* 공기방울 효과 래퍼 */
@@ -78,21 +80,43 @@
             100% { opacity: 0.45; }
         }
 
-        .bubble {
+        .bubble-wrap {
             position: absolute;
-            bottom: -50px;
-            background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
+            bottom: -60px;
             pointer-events: none;
-            animation: rise linear infinite;
+            animation: drift ease-in-out infinite alternate;
+        }
+
+        .bubble {
+            position: relative;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 28% 25%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.4) 12%, rgba(255,255,255,0.05) 30%, transparent 55%),
+                radial-gradient(circle at 65% 70%, rgba(255,255,255,0.25) 0%, transparent 40%),
+                radial-gradient(circle at 50% 50%, rgba(200,235,255,0.08) 0%, rgba(200,235,255,0.18) 100%);
+            border: 1px solid rgba(255, 255, 255, 0.35);
+            box-shadow:
+                inset -3px -3px 5px rgba(255,255,255,0.25),
+                inset 3px 3px 6px rgba(0,60,100,0.3),
+                0 0 4px rgba(255,255,255,0.15);
+            animation: rise linear infinite, wobble ease-in-out infinite alternate;
         }
 
         @keyframes rise {
-            0% { transform: translateY(0) scale(0.8); opacity: 0; }
-            10% { opacity: 1; }
-            80% { opacity: 0.5; }
-            100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
+            0% { transform: translateY(0) scale(0.6); opacity: 0; }
+            8% { opacity: 0.95; }
+            85% { opacity: 0.55; }
+            100% { transform: translateY(-115vh) scale(1.15); opacity: 0; }
+        }
+
+        @keyframes wobble {
+            0% { margin-left: 0; }
+            100% { margin-left: var(--wobble, 6px); }
+        }
+
+        @keyframes drift {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(var(--drift-x, 15px)); }
         }
 
         /* 수중 생물들이 헤엄칠 공간 */
@@ -180,11 +204,11 @@
 </head>
 <body>
 
-    <!-- SVG Filter for stronger underwater ripple effect -->
+    <!-- SVG Filter for underwater ripple effect (모바일 최적화) -->
     <svg style="display: none;">
         <filter id="water-filter">
-            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise" seed="1">
-                <animate attributeName="baseFrequency" values="0.01 0.015; 0.015 0.02; 0.01 0.015" dur="12s" repeatCount="indefinite" />
+            <feTurbulence type="fractalNoise" baseFrequency="0.005 0.008" numOctaves="1" result="noise" seed="1">
+                <animate attributeName="baseFrequency" values="0.005 0.008; 0.008 0.012; 0.005 0.008" dur="12s" repeatCount="indefinite" />
             </feTurbulence>
             <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
         </filter>
@@ -199,7 +223,7 @@
     <!-- 생물들이 헤엄치는 수족관 (z-index: 5) -->
     <div id="aquarium"></div>
 
-    <!-- 요청하신 스크린 오버레이 레이어 (z-index: 6, 생물 위로 이동하여 첨부 이미지에도 적용됨) -->
+    <!-- 스크린 오버레이 레이어 -->
     <img id="screen-layer" src="https://cdn.pixabay.com/photo/2016/11/19/09/46/ocean-1838340_1280.jpg" alt="Screen Overlay">
 
     <!-- UI (z-index: 10) -->
@@ -240,23 +264,33 @@
 
         // 공기방울 생성 로직
         function createBubble() {
+            const wrap = document.createElement('div');
+            wrap.className = 'bubble-wrap';
+
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
-            
-            const size = 10 + Math.random() * 15;
+
+            const size = 4 + Math.random() * 22;
             bubble.style.width = `${size}px`;
             bubble.style.height = `${size}px`;
-            
-            bubble.style.left = `${Math.random() * 100}%`;
-            
-            const duration = 5 + Math.random() * 7;
-            bubble.style.animationDuration = `${duration}s`;
-            
-            bubbleContainer.appendChild(bubble);
+
+            wrap.style.left = `${Math.random() * 100}%`;
+
+            const riseDuration = 6 + Math.random() * 8;
+            bubble.style.animationDuration = `${riseDuration}s, ${1.5 + Math.random() * 1.5}s`;
+            bubble.style.animationDelay = `0s, ${Math.random() * 2}s`;
+            bubble.style.setProperty('--wobble', `${(Math.random() * 6 - 3).toFixed(1)}px`);
+
+            const driftDuration = 3 + Math.random() * 4;
+            wrap.style.animationDuration = `${driftDuration}s`;
+            wrap.style.setProperty('--drift-x', `${(Math.random() * 30 - 15).toFixed(1)}px`);
+
+            wrap.appendChild(bubble);
+            bubbleContainer.appendChild(wrap);
 
             setTimeout(() => {
-                bubble.remove();
-            }, duration * 1000);
+                wrap.remove();
+            }, riseDuration * 1000);
         }
 
         setInterval(createBubble, 400);
@@ -284,8 +318,8 @@
                 el: container,
                 x: Math.random() * (window.innerWidth - size),
                 y: Math.random() * (window.innerHeight - size),
-                vx: (Math.random() - 0.5) * 1.2, 
-                vy: (Math.random() - 0.5) * 1.2, 
+                vx: (Math.random() - 0.5) * 0.4, 
+                vy: (Math.random() - 0.5) * 0.4, 
                 size: size,
                 baseOffset: Math.random() * 100 
             };
@@ -298,8 +332,8 @@
             time += 0.015;
 
             swimmers.forEach(s => {
-                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.25;
-                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.25;
+                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.1;
+                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.1;
 
                 s.x += currentVx;
                 s.y += currentVy;
@@ -342,4 +376,3 @@
     </script>
 </body>
 </html>
-
