@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나만의 수중 수족관</title>
+    <title>나만의 수중 수족관 (공기방울 & 일렁임 추가)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -18,19 +18,57 @@
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
         }
 
-        /* SVG 필터가 적용될 배경 컨테이너 */
+        /* SVG 필터 및 CSS 애니메이션이 적용될 배경 컨테이너 */
         #bg-container {
             position: absolute;
-            top: -5%; /* 필터 일그러짐 테두리를 숨기기 위해 여유 공간 할당 */
-            left: -5%;
-            width: 110%;
-            height: 110%;
+            top: -10%; 
+            left: -10%;
+            width: 120%;
+            height: 120%;
             background-image: url('https://cdn.pixabay.com/photo/2019/06/20/09/26/underwater-4286600_1280.jpg');
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            filter: url(#water-filter) brightness(0.85); /* 바닷속 일렁임 효과 및 약간 어둡게 */
+            /* 이전보다 더 강한 필터 적용 */
+            filter: url(#water-filter) brightness(0.85); 
             z-index: 1;
+            /* 정적인 느낌을 없애기 위한 CSS 흔들림(일렁임) 애니메이션 추가 */
+            animation: sway 15s ease-in-out infinite alternate;
+        }
+
+        @keyframes sway {
+            0% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+            33% { transform: scale(1.1) translate(1.5%, 1%) rotate(0.5deg); }
+            66% { transform: scale(1.08) translate(-1%, 1.5%) rotate(-0.5deg); }
+            100% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+        }
+
+        /* 공기방울 효과 래퍼 */
+        #bubble-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        .bubble {
+            position: absolute;
+            bottom: -50px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            animation: rise linear infinite;
+        }
+
+        @keyframes rise {
+            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
         }
 
         /* 수중 생물들이 헤엄칠 공간 */
@@ -41,7 +79,7 @@
             width: 100%;
             height: 100%;
             z-index: 5;
-            pointer-events: none; /* 배경이나 UI 클릭을 방해하지 않음 */
+            pointer-events: none;
         }
 
         /* UI 영역 */
@@ -87,34 +125,25 @@
             display: none;
         }
 
-        /* 업로드된 생물체 래퍼 */
         .creature {
             position: absolute;
-            will-change: transform; /* JS 애니메이션 성능 최적화 */
+            will-change: transform;
             transform-origin: center center;
         }
 
-        /* 생물체 이미지 (해파리처럼 꾸물거리는 모션) */
         .creature img {
             width: 100%;
             height: 100%;
             object-fit: contain;
             filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
-            animation: squirm 3s ease-in-out infinite alternate;
+            animation: squirm 4s ease-in-out infinite alternate; /* 꾸물거림도 살짝 더 느리게 */
             transform-origin: center center;
         }
 
-        /* 해파리의 수축 및 팽창을 모방한 CSS 키프레임 */
         @keyframes squirm {
-            0% {
-                transform: scale(1, 1) translateY(0);
-            }
-            50% {
-                transform: scale(1.15, 0.85) translateY(5px);
-            }
-            100% {
-                transform: scale(0.9, 1.1) translateY(-5px);
-            }
+            0% { transform: scale(1, 1) translateY(0); }
+            50% { transform: scale(1.1, 0.9) translateY(3px); }
+            100% { transform: scale(0.95, 1.05) translateY(-3px); }
         }
         
         .instruction {
@@ -127,20 +156,22 @@
 </head>
 <body>
 
-    <!-- SVG Filter for the underwater ripple effect -->
+    <!-- SVG Filter for stronger underwater ripple effect -->
     <svg style="display: none;">
         <filter id="water-filter">
-            <!-- baseFrequency를 조정하여 물결의 크기를 설정 -->
-            <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" result="turbulence">
-                <animate attributeName="baseFrequency" values="0.015 0.02; 0.02 0.025; 0.015 0.02" dur="8s" repeatCount="indefinite"/>
+            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise" seed="1">
+                <animate attributeName="baseFrequency" values="0.01 0.015; 0.015 0.02; 0.01 0.015" dur="12s" repeatCount="indefinite" />
             </feTurbulence>
-            <!-- scale을 조정하여 물결의 세기를 설정 -->
-            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="15" xChannelSelector="R" yChannelSelector="G"/>
+            <!-- scale을 늘려 일렁임(굴절) 효과 강화 -->
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
         </filter>
     </svg>
 
     <!-- 배경 컨테이너 -->
     <div id="bg-container"></div>
+
+    <!-- 공기방울 컨테이너 -->
+    <div id="bubble-container"></div>
 
     <!-- 생물들이 헤엄치는 수족관 -->
     <div id="aquarium"></div>
@@ -156,6 +187,7 @@
         const uploadBtn = document.getElementById('upload-btn');
         const fileInput = document.getElementById('file-input');
         const aquarium = document.getElementById('aquarium');
+        const bubbleContainer = document.getElementById('bubble-container');
         
         let swimmers = [];
         let time = 0;
@@ -179,10 +211,39 @@
                 reader.readAsDataURL(file);
             });
             
-            // 입력 초기화 (같은 파일을 다시 선택할 수 있게)
             fileInput.value = '';
         });
 
+        // --- 공기방울 생성 로직 ---
+        function createBubble() {
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble';
+            
+            // 10px ~ 25px 사이의 랜덤한 크기
+            const size = 10 + Math.random() * 15;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
+            
+            // X축 위치 랜덤
+            bubble.style.left = `${Math.random() * 100}%`;
+            
+            // 올라가는 속도 랜덤 (5초 ~ 12초)
+            const duration = 5 + Math.random() * 7;
+            bubble.style.animationDuration = `${duration}s`;
+            
+            bubbleContainer.appendChild(bubble);
+
+            // 애니메이션이 끝나면 DOM에서 제거
+            setTimeout(() => {
+                bubble.remove();
+            }, duration * 1000);
+        }
+
+        // 0.4초마다 공기방울 생성
+        setInterval(createBubble, 400);
+
+
+        // --- 수중 생물 생성 로직 ---
         function createCreature(src) {
             const container = document.createElement('div');
             container.className = 'creature';
@@ -190,46 +251,44 @@
             const img = document.createElement('img');
             img.src = src;
 
-            // 랜덤 꾸물거림 애니메이션 주기 및 딜레이 설정 (자연스러움을 위해)
-            const duration = 2 + Math.random() * 2; // 2초 ~ 4초
+            const duration = 3 + Math.random() * 2; // 3초 ~ 5초 (느려짐)
             img.style.animationDuration = `${duration}s`;
-            img.style.animationDelay = `-${Math.random() * 5}s`; // 서로 다른 타이밍에 시작
+            img.style.animationDelay = `-${Math.random() * 5}s`;
 
             container.appendChild(img);
             aquarium.appendChild(container);
 
-            // 생물 크기 랜덤 설정 (80px ~ 200px)
             const size = 80 + Math.random() * 120;
             container.style.width = `${size}px`;
             container.style.height = `${size}px`;
 
-            // 초기 위치 및 속도 설정
+            // 이동 속도를 이전보다 절반 이하로 줄임 (0.5 ~ 1.5)
             const swimmer = {
                 el: container,
                 x: Math.random() * (window.innerWidth - size),
                 y: Math.random() * (window.innerHeight - size),
-                vx: (Math.random() - 0.5) * 3, // X축 기본 속도
-                vy: (Math.random() - 0.5) * 3, // Y축 기본 속도
+                vx: (Math.random() - 0.5) * 1.2, 
+                vy: (Math.random() - 0.5) * 1.2, 
                 size: size,
-                baseOffset: Math.random() * 100 // 사인파 변동을 위한 랜덤 오프셋
+                baseOffset: Math.random() * 100 
             };
 
             swimmers.push(swimmer);
         }
 
-        // 수중 유영 애니메이션 루프
+        // --- 수중 유영 애니메이션 루프 ---
         function updateSwimmers() {
-            time += 0.02; // 시간의 흐름 (사인파 활용 용도)
+            time += 0.015; // 시간 흐름도 늦춰서 흔들림을 부드럽게
 
             swimmers.forEach(s => {
-                // 부드러운 유영을 위해 속도에 사인파(노이즈) 적용
-                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.5;
-                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.5;
+                // 부가적인 사인파 움직임도 줄여서 속도를 전체적으로 감소시킴
+                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.25;
+                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.25;
 
                 s.x += currentVx;
                 s.y += currentVy;
 
-                // 화면 경계에 닿으면 부드럽게 튕겨나오기 (반전)
+                // 화면 경계 튕김 처리
                 if (s.x < -s.size / 2) {
                     s.x = -s.size / 2;
                     s.vx = Math.abs(s.vx);
@@ -246,19 +305,13 @@
                     s.vy = -Math.abs(s.vy);
                 }
 
-                // 이동 방향(벡터)을 계산하여 회전각(angle) 구하기
-                // atan2는 라디안을 반환하므로 degree로 변환.
-                // 해파리가 보통 위쪽을 향해 헤엄치는 형태를 가정하여 90도를 더해줌
                 let angle = Math.atan2(currentVy, currentVx) * (180 / Math.PI) + 90;
-
-                // 위치와 회전값 적용
                 s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${angle}deg)`;
             });
 
             requestAnimationFrame(updateSwimmers);
         }
 
-        // 창 크기 변경 시 위치가 크게 어긋나는 것 방지
         window.addEventListener('resize', () => {
             swimmers.forEach(s => {
                 if(s.x > window.innerWidth) s.x = window.innerWidth - s.size;
@@ -266,10 +319,14 @@
             });
         });
 
-        // 애니메이션 시작
         requestAnimationFrame(updateSwimmers);
 
+        // 초기 화면에 공기방울 몇 개 띄워놓기
+        for(let i=0; i<10; i++) {
+            setTimeout(createBubble, Math.random() * 2000);
+        }
     </script>
 </body>
 </html>
+
 
