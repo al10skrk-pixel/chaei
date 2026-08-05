@@ -1,143 +1,275 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Jellyfish Swimmer</title>
-<style>
-  * { box-sizing: border-box; }
-  html, body { margin:0; width:100%; height:100%; overflow:hidden; background:#031820; }
-  body { display:grid; place-items:center; font-family:system-ui,sans-serif; }
-  .ocean {
-    position:relative;
-    width:min(100vw, calc(100vh * 16 / 9));
-    aspect-ratio:16/9;
-    overflow:hidden;
-    background:
-      linear-gradient(#0002,#0002),
-      url("https://cdn.pixabay.com/photo/2019/06/20/09/26/underwater-4286600_1280.jpg")
-      center/cover no-repeat;
-    isolation:isolate;
-  }
-  .ocean::after {
-    content:""; position:absolute; inset:0; pointer-events:none;
-    background:radial-gradient(ellipse at center,transparent 35%,#00151d99 100%);
-    z-index:5;
-  }
-  #creatures { position:absolute; inset:0; overflow:hidden; }
-  .creature {
-    position:absolute; left:0; top:0;
-    width:clamp(70px,11vw,170px);
-    max-width:24%;
-    pointer-events:none;
-    will-change:transform;
-    filter:drop-shadow(0 8px 14px #00101888);
-    animation:drift var(--dur) ease-in-out infinite alternate;
-  }
-  .creature img {
-    width:100%; display:block; object-fit:contain;
-    animation:pulse var(--pulse) ease-in-out infinite;
-    transform-origin:50% 45%;
-    opacity:.92;
-  }
-  @keyframes pulse {
-    0%,100% { transform:scaleX(1) scaleY(1) rotate(-2deg); }
-    50% { transform:scaleX(.88) scaleY(1.08) rotate(2deg); }
-  }
-  @keyframes drift {
-    0% { transform:translate3d(var(--x0),var(--y0),0) rotate(var(--r0)); }
-    50% { transform:translate3d(var(--x1),var(--y1),0) rotate(var(--r1)); }
-    100% { transform:translate3d(var(--x2),var(--y2),0) rotate(var(--r2)); }
-  }
-  #picker {
-    position:absolute; z-index:10; left:50%; top:50%;
-    transform:translate(-50%,-50%);
-    padding:14px 20px; border:1px solid #ffffff55; border-radius:999px;
-    color:white; background:#031820aa; backdrop-filter:blur(8px);
-    cursor:pointer; font-weight:700; letter-spacing:.03em;
-    box-shadow:0 5px 25px #0006;
-  }
-  #file { display:none; }
-  #hint {
-    position:absolute; z-index:10; left:50%; bottom:18px; transform:translateX(-50%);
-    color:#eaffffcc; font-size:12px; text-align:center; pointer-events:none;
-  }
-  .bubble {
-    position:absolute; border:1px solid #ffffff77; border-radius:50%;
-    width:var(--s); height:var(--s); left:var(--x); top:var(--y);
-    animation:bubble var(--d) linear infinite; opacity:0;
-  }
-  @keyframes bubble {
-    0% { transform:translateY(20px) scale(.7); opacity:0; }
-    15% { opacity:.5; } 100% { transform:translateY(-120px) translateX(20px) scale(1.1); opacity:0; }
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>나만의 수중 수족관</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #01152a; /* 심해 느낌의 배경색 */
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+        }
+
+        /* SVG 필터가 적용될 배경 컨테이너 */
+        #bg-container {
+            position: absolute;
+            top: -5%; /* 필터 일그러짐 테두리를 숨기기 위해 여유 공간 할당 */
+            left: -5%;
+            width: 110%;
+            height: 110%;
+            background-image: url('https://cdn.pixabay.com/photo/2019/06/20/09/26/underwater-4286600_1280.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            filter: url(#water-filter) brightness(0.85); /* 바닷속 일렁임 효과 및 약간 어둡게 */
+            z-index: 1;
+        }
+
+        /* 수중 생물들이 헤엄칠 공간 */
+        #aquarium {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none; /* 배경이나 UI 클릭을 방해하지 않음 */
+        }
+
+        /* UI 영역 */
+        #ui-layer {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .upload-btn {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: #ffffff;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .upload-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .upload-btn:active {
+            transform: translateY(1px);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        /* 업로드된 생물체 래퍼 */
+        .creature {
+            position: absolute;
+            will-change: transform; /* JS 애니메이션 성능 최적화 */
+            transform-origin: center center;
+        }
+
+        /* 생물체 이미지 (해파리처럼 꾸물거리는 모션) */
+        .creature img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
+            animation: squirm 3s ease-in-out infinite alternate;
+            transform-origin: center center;
+        }
+
+        /* 해파리의 수축 및 팽창을 모방한 CSS 키프레임 */
+        @keyframes squirm {
+            0% {
+                transform: scale(1, 1) translateY(0);
+            }
+            50% {
+                transform: scale(1.15, 0.85) translateY(5px);
+            }
+            100% {
+                transform: scale(0.9, 1.1) translateY(-5px);
+            }
+        }
+        
+        .instruction {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            pointer-events: none;
+        }
+    </style>
 </head>
 <body>
-<main class="ocean" id="ocean">
-  <div id="creatures"></div>
-  <label id="picker">사진을 선택해 바다에 띄우기
-    <input id="file" type="file" accept="image/*">
-  </label>
-  <div id="hint">사진을 선택하면 해파리처럼 천천히 꾸물거리며 유영합니다 </div>
-</main>
 
-<script>
-const ocean = document.getElementById('ocean');
-const creatures = document.getElementById('creatures');
-const file = document.getElementById('file');
-const picker = document.getElementById('picker');
+    <!-- SVG Filter for the underwater ripple effect -->
+    <svg style="display: none;">
+        <filter id="water-filter">
+            <!-- baseFrequency를 조정하여 물결의 크기를 설정 -->
+            <feTurbulence type="fractalNoise" baseFrequency="0.015 0.02" numOctaves="2" result="turbulence">
+                <animate attributeName="baseFrequency" values="0.015 0.02; 0.02 0.025; 0.015 0.02" dur="8s" repeatCount="indefinite"/>
+            </feTurbulence>
+            <!-- scale을 조정하여 물결의 세기를 설정 -->
+            <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="15" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+    </svg>
 
-function rand(a,b){ return Math.random()*(b-a)+a; }
-function makeBubbles(){
-  for(let i=0;i<18;i++){
-    const b=document.createElement('i');
-    b.className='bubble';
-    b.style.setProperty('--s',`${rand(3,11)}px`);
-    b.style.setProperty('--x',`${rand(0,100)}%`);
-    b.style.setProperty('--y',`${rand(50,100)}%`);
-    b.style.setProperty('--d',`${rand(6,15)}s`);
-    b.style.animationDelay=`-${rand(0,15)}s`;
-    ocean.appendChild(b);
-  }
-}
-makeBubbles();
+    <!-- 배경 컨테이너 -->
+    <div id="bg-container"></div>
 
-file.addEventListener('change', e => {
-  const f=e.target.files?.[0];
-  if(!f) return;
-  const url=URL.createObjectURL(f);
+    <!-- 생물들이 헤엄치는 수족관 -->
+    <div id="aquarium"></div>
 
-  const c=document.createElement('div');
-  c.className='creature';
-  const img=document.createElement('img');
-  img.src=url;
-  img.alt='사용자가 선택한 이미지';
-  c.appendChild(img);
+    <!-- UI -->
+    <div id="ui-layer">
+        <div class="instruction">사진을 추가하여 바다에 띄워보세요</div>
+        <button class="upload-btn" id="upload-btn">사진 선택하기 (다중 선택 가능)</button>
+        <input type="file" id="file-input" multiple accept="image/*">
+    </div>
 
-  const w=ocean.clientWidth, h=ocean.clientHeight;
-  const x0=rand(-w*.08,w*.82), y0=rand(h*.05,h*.72);
-  const x1=Math.max(-w*.08,Math.min(w*.78,x0+rand(-w*.18,w*.18)));
-  const y1=Math.max(h*.03,Math.min(h*.78,y0+rand(-h*.20,h*.20)));
-  const x2=Math.max(-w*.08,Math.min(w*.82,x1+rand(-w*.18,w*.22)));
-  const y2=Math.max(h*.03,Math.min(h*.82,y1+rand(-h*.16,h*.16)));
+    <script>
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileInput = document.getElementById('file-input');
+        const aquarium = document.getElementById('aquarium');
+        
+        let swimmers = [];
+        let time = 0;
 
-  c.style.setProperty('--x0',`${x0}px`);
-  c.style.setProperty('--y0',`${y0}px`);
-  c.style.setProperty('--x1',`${x1}px`);
-  c.style.setProperty('--y1',`${y1}px`);
-  c.style.setProperty('--x2',`${x2}px`);
-  c.style.setProperty('--y2',`${y2}px`);
-  c.style.setProperty('--r0',`${rand(-8,8)}deg`);
-  c.style.setProperty('--r1',`${rand(-18,18)}deg`);
-  c.style.setProperty('--r2',`${rand(-10,10)}deg`);
-  c.style.setProperty('--dur',`${rand(13,22)}s`);
-  c.style.setProperty('--pulse',`${rand(2.3,3.8)}s`);
+        // 버튼 클릭 시 숨겨진 file input 클릭
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
 
-  creatures.replaceChildren(c);
-  picker.style.display='none';
-  document.getElementById('hint').style.display='none';
-});
-</script>
+        // 파일이 선택되었을 때
+        fileInput.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const imgSrc = event.target.result;
+                    createCreature(imgSrc);
+                };
+                reader.readAsDataURL(file);
+            });
+            
+            // 입력 초기화 (같은 파일을 다시 선택할 수 있게)
+            fileInput.value = '';
+        });
+
+        function createCreature(src) {
+            const container = document.createElement('div');
+            container.className = 'creature';
+
+            const img = document.createElement('img');
+            img.src = src;
+
+            // 랜덤 꾸물거림 애니메이션 주기 및 딜레이 설정 (자연스러움을 위해)
+            const duration = 2 + Math.random() * 2; // 2초 ~ 4초
+            img.style.animationDuration = `${duration}s`;
+            img.style.animationDelay = `-${Math.random() * 5}s`; // 서로 다른 타이밍에 시작
+
+            container.appendChild(img);
+            aquarium.appendChild(container);
+
+            // 생물 크기 랜덤 설정 (80px ~ 200px)
+            const size = 80 + Math.random() * 120;
+            container.style.width = `${size}px`;
+            container.style.height = `${size}px`;
+
+            // 초기 위치 및 속도 설정
+            const swimmer = {
+                el: container,
+                x: Math.random() * (window.innerWidth - size),
+                y: Math.random() * (window.innerHeight - size),
+                vx: (Math.random() - 0.5) * 3, // X축 기본 속도
+                vy: (Math.random() - 0.5) * 3, // Y축 기본 속도
+                size: size,
+                baseOffset: Math.random() * 100 // 사인파 변동을 위한 랜덤 오프셋
+            };
+
+            swimmers.push(swimmer);
+        }
+
+        // 수중 유영 애니메이션 루프
+        function updateSwimmers() {
+            time += 0.02; // 시간의 흐름 (사인파 활용 용도)
+
+            swimmers.forEach(s => {
+                // 부드러운 유영을 위해 속도에 사인파(노이즈) 적용
+                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.5;
+                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.5;
+
+                s.x += currentVx;
+                s.y += currentVy;
+
+                // 화면 경계에 닿으면 부드럽게 튕겨나오기 (반전)
+                if (s.x < -s.size / 2) {
+                    s.x = -s.size / 2;
+                    s.vx = Math.abs(s.vx);
+                } else if (s.x > window.innerWidth - s.size / 2) {
+                    s.x = window.innerWidth - s.size / 2;
+                    s.vx = -Math.abs(s.vx);
+                }
+
+                if (s.y < -s.size / 2) {
+                    s.y = -s.size / 2;
+                    s.vy = Math.abs(s.vy);
+                } else if (s.y > window.innerHeight - s.size / 2) {
+                    s.y = window.innerHeight - s.size / 2;
+                    s.vy = -Math.abs(s.vy);
+                }
+
+                // 이동 방향(벡터)을 계산하여 회전각(angle) 구하기
+                // atan2는 라디안을 반환하므로 degree로 변환.
+                // 해파리가 보통 위쪽을 향해 헤엄치는 형태를 가정하여 90도를 더해줌
+                let angle = Math.atan2(currentVy, currentVx) * (180 / Math.PI) + 90;
+
+                // 위치와 회전값 적용
+                s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${angle}deg)`;
+            });
+
+            requestAnimationFrame(updateSwimmers);
+        }
+
+        // 창 크기 변경 시 위치가 크게 어긋나는 것 방지
+        window.addEventListener('resize', () => {
+            swimmers.forEach(s => {
+                if(s.x > window.innerWidth) s.x = window.innerWidth - s.size;
+                if(s.y > window.innerHeight) s.y = window.innerHeight - s.size;
+            });
+        });
+
+        // 애니메이션 시작
+        requestAnimationFrame(updateSwimmers);
+
+    </script>
 </body>
 </html>
+
