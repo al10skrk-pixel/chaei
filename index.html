@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>채이네 수족관(제가 채이입니다)</title>
+    <title>나만의 수중 수족관 (공기방울 & 일렁임 & 스크린 효과 추가)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -14,11 +14,11 @@
             width: 100%;
             height: 100%;
             overflow: hidden;
-            background-color: #01152a;
+            background-color: #01152a; /* 심해 느낌의 배경색 */
             font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, 'Helvetica Neue', 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
         }
 
-        /* 배경 컨테이너 - 무거운 SVG 필터 제거 후 기본 블러만 유지 (최적화) */
+        /* SVG 필터 및 CSS 애니메이션이 적용될 배경 컨테이너 */
         #bg-container {
             position: absolute;
             top: -10%; 
@@ -29,20 +29,18 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            filter: brightness(0.85) blur(6px); 
+            filter: url(#water-filter) brightness(0.85); 
             z-index: 1;
         }
 
-        /* 3D Transform 적용으로 GPU 가속 유도 (최적화) */
         @keyframes sway {
-            0% { transform: scale(1.0) translate3d(0, 0, 0) rotate(0deg); }
-            20% { transform: scale(0.9) translate3d(1%, 0.5%, 0) rotate(0.4deg); }
-            40% { transform: scale(1.15) translate3d(1.5%, 1%, 0) rotate(0.7deg); }
-            60% { transform: scale(0.92) translate3d(-1%, 1.5%, 0) rotate(-0.5deg); }
-            80% { transform: scale(1.12) translate3d(-0.5%, 0.5%, 0) rotate(-0.3deg); }
-            100% { transform: scale(1.0) translate3d(0, 0, 0) rotate(0deg); }
+            0% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
+            33% { transform: scale(1.1) translate(1.5%, 1%) rotate(0.5deg); }
+            66% { transform: scale(1.08) translate(-1%, 1.5%) rotate(-0.5deg); }
+            100% { transform: scale(1.05) translate(0, 0) rotate(0deg); }
         }
 
+        /* 공기방울 효과 래퍼 */
         #bubble-container {
             position: absolute;
             top: 0;
@@ -53,7 +51,9 @@
             pointer-events: none;
         }
 
-        /* 스크린 레이어 - 과도한 blur() 제거 및 will-change 추가 (최적화) */
+        /* ----------------------------------------------------
+         * 새로 추가된 영역: 스크린 레이어 효과 (z-index: 6, 생물 레이어보다 위)
+         * ---------------------------------------------------- */
         #screen-layer {
             position: absolute;
             top: -10%;
@@ -62,67 +62,40 @@
             height: 120%;
             z-index: 6;
             pointer-events: none;
-            mix-blend-mode: screen;
+
+            mix-blend-mode: screen; /* 스크린 레이어 효과 */
+            filter: blur(10px);      /* 블러 10px */
+
             object-fit: cover;
-            will-change: transform, opacity;
+
             animation: sway 15s ease-in-out infinite alternate,
                        screen-wave 6s ease-in-out infinite alternate;
         }
 
         @keyframes screen-wave {
-            0% { opacity: 0.45; }
-            50% { opacity: 0.65; }
-            100% { opacity: 0.45; }
+            0% { opacity: 0.15; }
+            50% { opacity: 0.25; }
+            100% { opacity: 0.15; }
         }
 
-        /* 공기방울 애니메이션 분리 (GPU 가속을 위해 레이아웃 변경 방지) */
-        .bubble-wrap {
-            position: absolute;
-            bottom: -60px;
-            pointer-events: none;
-            animation: drift ease-in-out infinite alternate;
-            will-change: transform;
-        }
-
-        .bubble-inner {
-            width: 100%;
-            height: 100%;
-            animation: wobble ease-in-out infinite alternate;
-            will-change: transform;
-        }
-
-        /* 공기방울 이미지 지정 및 불필요한 그림자 제거 */
         .bubble {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            background-image: url('https://pngimg.com/uploads/soap_bubbles/soap_bubbles_PNG9.png');
-            background-size: contain;
-            background-position: center;
-            background-repeat: no-repeat;
+            position: absolute;
+            bottom: -50px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
             animation: rise linear infinite;
-            will-change: transform, opacity;
         }
 
-        /* JS에서 부여하는 --max-opacity 변수에 따라 투명도 조절 */
         @keyframes rise {
-            0% { transform: translate3d(0, 0, 0) scale(0.6); opacity: 0; }
-            8% { opacity: var(--max-opacity, 0.1); }
-            85% { opacity: calc(var(--max-opacity, 0.1) * 0.6); }
-            100% { transform: translate3d(0, -115vh, 0) scale(1.15); opacity: 0; }
+            0% { transform: translateY(0) scale(0.8); opacity: 0; }
+            10% { opacity: 1; }
+            80% { opacity: 0.5; }
+            100% { transform: translateY(-110vh) scale(1.2); opacity: 0; }
         }
 
-        /* margin-left 대신 transform 이용 (최적화) */
-        @keyframes wobble {
-            0% { transform: translate3d(0, 0, 0); }
-            100% { transform: translate3d(var(--wobble, 6px), 0, 0); }
-        }
-
-        @keyframes drift {
-            0% { transform: translate3d(0, 0, 0); }
-            100% { transform: translate3d(var(--drift-x, 15px), 0, 0); }
-        }
-
+        /* 수중 생물들이 헤엄칠 공간 */
         #aquarium {
             position: absolute;
             top: 0;
@@ -133,6 +106,7 @@
             pointer-events: none;
         }
 
+        /* UI 영역 */
         #ui-layer {
             position: absolute;
             bottom: 40px;
@@ -188,14 +162,12 @@
             filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
             animation: squirm 4s ease-in-out infinite alternate;
             transform-origin: center center;
-            will-change: transform;
         }
 
-        /* 수중생물 애니메이션도 GPU 가속 적용 */
         @keyframes squirm {
-            0% { transform: scale(1, 1) translate3d(0, 0, 0); }
-            50% { transform: scale(1.1, 0.9) translate3d(0, 3px, 0); }
-            100% { transform: scale(0.95, 1.05) translate3d(0, -3px, 0); }
+            0% { transform: scale(1, 1) translateY(0); }
+            50% { transform: scale(1.1, 0.9) translateY(3px); }
+            100% { transform: scale(0.95, 1.05) translateY(-3px); }
         }
         
         .instruction {
@@ -208,19 +180,29 @@
 </head>
 <body>
 
-    <!-- 배경 컨테이너 -->
+    <!-- SVG Filter for stronger underwater ripple effect -->
+    <svg style="display: none;">
+        <filter id="water-filter">
+            <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise" seed="1">
+                <animate attributeName="baseFrequency" values="0.01 0.015; 0.015 0.02; 0.01 0.015" dur="12s" repeatCount="indefinite" />
+            </feTurbulence>
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
+        </filter>
+    </svg>
+
+    <!-- 배경 컨테이너 (z-index: 1) -->
     <div id="bg-container"></div>
 
-    <!-- 공기방울 컨테이너 -->
+    <!-- 공기방울 컨테이너 (z-index: 2) -->
     <div id="bubble-container"></div>
 
-    <!-- 생물 수족관 -->
+    <!-- 생물들이 헤엄치는 수족관 (z-index: 5) -->
     <div id="aquarium"></div>
 
-    <!-- 스크린 오버레이 레이어 -->
+    <!-- 요청하신 스크린 오버레이 레이어 (z-index: 6, 생물 위로 이동하여 첨부 이미지에도 적용됨) -->
     <img id="screen-layer" src="https://cdn.pixabay.com/photo/2016/11/19/09/46/ocean-1838340_1280.jpg" alt="Screen Overlay">
 
-    <!-- UI -->
+    <!-- UI (z-index: 10) -->
     <div id="ui-layer">
         <div class="instruction">사진을 추가하여 바다에 띄워보세요</div>
         <button class="upload-btn" id="upload-btn">사진 선택하기</button>
@@ -258,48 +240,23 @@
 
         // 공기방울 생성 로직
         function createBubble() {
-            const wrap = document.createElement('div');
-            wrap.className = 'bubble-wrap';
-
-            const inner = document.createElement('div');
-            inner.className = 'bubble-inner';
-
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
-
-            // 기존 공기방울 사이즈 동일하게 유지
-            const size = 4 + Math.random() * 22;
-            wrap.style.width = `${size}px`;
-            wrap.style.height = `${size}px`;
-
-            wrap.style.left = `${Math.random() * 100}%`;
-
-            const riseDuration = 6 + Math.random() * 8;
-            bubble.style.animationDuration = `${riseDuration}s`;
-            bubble.style.animationDelay = `${Math.random() * 2}s`;
             
-            // 1. 투명도 5~10 사이 랜덤 생성 (0.05 ~ 0.10)
-            const randomOpacity = (0.05 + Math.random() * 0.05).toFixed(2);
-            bubble.style.setProperty('--max-opacity', randomOpacity);
+            const size = 10 + Math.random() * 15;
+            bubble.style.width = `${size}px`;
+            bubble.style.height = `${size}px`;
             
-            // 2. 블러효과 0~10 사이 랜덤 생성
-            const randomBlur = (Math.random() * 10).toFixed(1);
-            bubble.style.filter = `blur(${randomBlur}px)`;
-
-            inner.style.animationDuration = `${1.5 + Math.random() * 1.5}s`;
-            inner.style.setProperty('--wobble', `${(Math.random() * 6 - 3).toFixed(1)}px`);
-
-            const driftDuration = 3 + Math.random() * 4;
-            wrap.style.animationDuration = `${driftDuration}s`;
-            wrap.style.setProperty('--drift-x', `${(Math.random() * 30 - 15).toFixed(1)}px`);
-
-            inner.appendChild(bubble);
-            wrap.appendChild(inner);
-            bubbleContainer.appendChild(wrap);
+            bubble.style.left = `${Math.random() * 100}%`;
+            
+            const duration = 5 + Math.random() * 7;
+            bubble.style.animationDuration = `${duration}s`;
+            
+            bubbleContainer.appendChild(bubble);
 
             setTimeout(() => {
-                wrap.remove();
-            }, (riseDuration + 3) * 1000);
+                bubble.remove();
+            }, duration * 1000);
         }
 
         setInterval(createBubble, 400);
@@ -323,13 +280,12 @@
             container.style.width = `${size}px`;
             container.style.height = `${size}px`;
 
-            // 속도 절반으로 줄이기 (0.4 -> 0.2)
             const swimmer = {
                 el: container,
                 x: Math.random() * (window.innerWidth - size),
                 y: Math.random() * (window.innerHeight - size),
-                vx: (Math.random() - 0.5) * 0.2, 
-                vy: (Math.random() - 0.5) * 0.2, 
+                vx: (Math.random() - 0.5) * 1.2, 
+                vy: (Math.random() - 0.5) * 1.2, 
                 size: size,
                 baseOffset: Math.random() * 100 
             };
@@ -339,13 +295,11 @@
 
         // 수중 유영 애니메이션 루프
         function updateSwimmers() {
-            // 전체적인 시간 흐름 속도 절반 감소 (0.015 -> 0.0075)
-            time += 0.0075;
+            time += 0.015;
 
             swimmers.forEach(s => {
-                // 사인곡선 등락폭 절반 감소 (0.1 -> 0.05)
-                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.05;
-                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.05;
+                let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.25;
+                let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.25;
 
                 s.x += currentVx;
                 s.y += currentVy;
@@ -367,9 +321,7 @@
                 }
 
                 let angle = Math.atan2(currentVy, currentVx) * (180 / Math.PI) + 90;
-                
-                // 모바일 최적화를 위해 translate 대신 translate3d를 사용하여 GPU 가속 활성화
-                s.el.style.transform = `translate3d(${s.x}px, ${s.y}px, 0) rotate(${angle}deg)`;
+                s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${angle}deg)`;
             });
 
             requestAnimationFrame(updateSwimmers);
