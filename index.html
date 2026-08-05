@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>나만의 수중 수족관 (공기방울 & 일렁임 추가)</title>
+    <title>나만의 수중 수족관 (공기방울 & 일렁임 & 스크린 효과 추가)</title>
     <style>
         * {
             box-sizing: border-box;
@@ -29,11 +29,8 @@
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            /* 이전보다 더 강한 필터 적용 */
             filter: url(#water-filter) brightness(0.85); 
             z-index: 1;
-            /* 정적인 느낌을 없애기 위한 CSS 흔들림(일렁임) 애니메이션 추가 */
-            animation: sway 15s ease-in-out infinite alternate;
         }
 
         @keyframes sway {
@@ -52,6 +49,33 @@
             height: 100%;
             z-index: 2;
             pointer-events: none;
+        }
+
+        /* ----------------------------------------------------
+         * 새로 추가된 영역: 스크린 레이어 효과 (z-index: 6, 생물 레이어보다 위)
+         * ---------------------------------------------------- */
+        #screen-layer {
+            position: absolute;
+            top: -10%;
+            left: -10%;
+            width: 120%;
+            height: 120%;
+            z-index: 6;
+            pointer-events: none;
+
+            mix-blend-mode: screen; /* 스크린 레이어 효과 */
+            filter: blur(10px);      /* 블러 10px */
+
+            object-fit: cover;
+
+            animation: sway 15s ease-in-out infinite alternate,
+                       screen-wave 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes screen-wave {
+            0% { opacity: 0.15; }
+            50% { opacity: 0.25; }
+            100% { opacity: 0.15; }
         }
 
         .bubble {
@@ -136,7 +160,7 @@
             height: 100%;
             object-fit: contain;
             filter: drop-shadow(0 15px 25px rgba(0,0,0,0.6));
-            animation: squirm 4s ease-in-out infinite alternate; /* 꾸물거림도 살짝 더 느리게 */
+            animation: squirm 4s ease-in-out infinite alternate;
             transform-origin: center center;
         }
 
@@ -162,21 +186,23 @@
             <feTurbulence type="fractalNoise" baseFrequency="0.01 0.015" numOctaves="3" result="noise" seed="1">
                 <animate attributeName="baseFrequency" values="0.01 0.015; 0.015 0.02; 0.01 0.015" dur="12s" repeatCount="indefinite" />
             </feTurbulence>
-            <!-- scale을 늘려 일렁임(굴절) 효과 강화 -->
             <feDisplacementMap in="SourceGraphic" in2="noise" scale="30" xChannelSelector="R" yChannelSelector="G" />
         </filter>
     </svg>
 
-    <!-- 배경 컨테이너 -->
+    <!-- 배경 컨테이너 (z-index: 1) -->
     <div id="bg-container"></div>
 
-    <!-- 공기방울 컨테이너 -->
+    <!-- 공기방울 컨테이너 (z-index: 2) -->
     <div id="bubble-container"></div>
 
-    <!-- 생물들이 헤엄치는 수족관 -->
+    <!-- 생물들이 헤엄치는 수족관 (z-index: 5) -->
     <div id="aquarium"></div>
 
-    <!-- UI -->
+    <!-- 요청하신 스크린 오버레이 레이어 (z-index: 6, 생물 위로 이동하여 첨부 이미지에도 적용됨) -->
+    <img id="screen-layer" src="https://cdn.pixabay.com/photo/2016/11/19/09/46/ocean-1838340_1280.jpg" alt="Screen Overlay">
+
+    <!-- UI (z-index: 10) -->
     <div id="ui-layer">
         <div class="instruction">사진을 추가하여 바다에 띄워보세요</div>
         <button class="upload-btn" id="upload-btn">사진 선택하기</button>
@@ -192,12 +218,10 @@
         let swimmers = [];
         let time = 0;
 
-        // 버튼 클릭 시 숨겨진 file input 클릭
         uploadBtn.addEventListener('click', () => {
             fileInput.click();
         });
 
-        // 파일이 선택되었을 때
         fileInput.addEventListener('change', (e) => {
             const files = e.target.files;
             if (!files || files.length === 0) return;
@@ -214,36 +238,30 @@
             fileInput.value = '';
         });
 
-        // --- 공기방울 생성 로직 ---
+        // 공기방울 생성 로직
         function createBubble() {
             const bubble = document.createElement('div');
             bubble.className = 'bubble';
             
-            // 10px ~ 25px 사이의 랜덤한 크기
             const size = 10 + Math.random() * 15;
             bubble.style.width = `${size}px`;
             bubble.style.height = `${size}px`;
             
-            // X축 위치 랜덤
             bubble.style.left = `${Math.random() * 100}%`;
             
-            // 올라가는 속도 랜덤 (5초 ~ 12초)
             const duration = 5 + Math.random() * 7;
             bubble.style.animationDuration = `${duration}s`;
             
             bubbleContainer.appendChild(bubble);
 
-            // 애니메이션이 끝나면 DOM에서 제거
             setTimeout(() => {
                 bubble.remove();
             }, duration * 1000);
         }
 
-        // 0.4초마다 공기방울 생성
         setInterval(createBubble, 400);
 
-
-        // --- 수중 생물 생성 로직 ---
+        // 수중 생물 생성 로직
         function createCreature(src) {
             const container = document.createElement('div');
             container.className = 'creature';
@@ -251,7 +269,7 @@
             const img = document.createElement('img');
             img.src = src;
 
-            const duration = 3 + Math.random() * 2; // 3초 ~ 5초 (느려짐)
+            const duration = 3 + Math.random() * 2;
             img.style.animationDuration = `${duration}s`;
             img.style.animationDelay = `-${Math.random() * 5}s`;
 
@@ -262,7 +280,6 @@
             container.style.width = `${size}px`;
             container.style.height = `${size}px`;
 
-            // 이동 속도를 이전보다 절반 이하로 줄임 (0.5 ~ 1.5)
             const swimmer = {
                 el: container,
                 x: Math.random() * (window.innerWidth - size),
@@ -276,19 +293,17 @@
             swimmers.push(swimmer);
         }
 
-        // --- 수중 유영 애니메이션 루프 ---
+        // 수중 유영 애니메이션 루프
         function updateSwimmers() {
-            time += 0.015; // 시간 흐름도 늦춰서 흔들림을 부드럽게
+            time += 0.015;
 
             swimmers.forEach(s => {
-                // 부가적인 사인파 움직임도 줄여서 속도를 전체적으로 감소시킴
                 let currentVx = s.vx + Math.sin(time + s.baseOffset) * 0.25;
                 let currentVy = s.vy + Math.cos(time * 0.8 + s.baseOffset) * 0.25;
 
                 s.x += currentVx;
                 s.y += currentVy;
 
-                // 화면 경계 튕김 처리
                 if (s.x < -s.size / 2) {
                     s.x = -s.size / 2;
                     s.vx = Math.abs(s.vx);
@@ -321,12 +336,9 @@
 
         requestAnimationFrame(updateSwimmers);
 
-        // 초기 화면에 공기방울 몇 개 띄워놓기
         for(let i=0; i<10; i++) {
             setTimeout(createBubble, Math.random() * 2000);
         }
     </script>
 </body>
 </html>
-
-
